@@ -1,0 +1,2 @@
+go install github.com/pressly/goose/v3/cmd/goose@latest
+goose -dir db/migrations create create_matches_table sql
