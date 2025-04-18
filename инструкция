@@ -1,2 +1,57 @@
 go install github.com/pressly/goose/v3/cmd/goose@latest
 goose -dir db/migrations create create_matches_table sql
+
+go install github.com/pressly/goose/v3/cmd/goose@latest
+
+Вариант миграции одним файлом:
+-- +goose Up
+CREATE TABLE IF NOT EXISTS teams (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS leagues (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS matches (
+    id SERIAL PRIMARY KEY,
+    match_id TEXT UNIQUE NOT NULL,
+    league TEXT NOT NULL,
+    match_name TEXT NOT NULL,
+    score TEXT,
+    game_time TEXT,
+    half TEXT,
+    home_team_id INTEGER REFERENCES teams(id),
+    away_team_id INTEGER REFERENCES teams(id),
+    league_id INTEGER REFERENCES leagues(id),
+    created_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS match_status (
+    id SERIAL PRIMARY KEY,
+    match_id TEXT NOT NULL REFERENCES matches(match_id),
+    status TEXT,
+    updated_at TIMESTAMP DEFAULT now(),
+    CONSTRAINT unique_status_match UNIQUE (match_id)
+);
+
+CREATE TABLE IF NOT EXISTS match_results (
+    id SERIAL PRIMARY KEY,
+    match_id TEXT NOT NULL REFERENCES matches(match_id),
+    result TEXT,
+    updated_at TIMESTAMP DEFAULT now(),
+    CONSTRAINT unique_result_match UNIQUE (match_id)
+);
+
+-- +goose Down
+DROP TABLE IF EXISTS match_results;
+DROP TABLE IF EXISTS match_status;
+DROP TABLE IF EXISTS matches;
+DROP TABLE IF EXISTS leagues;
+DROP TABLE IF EXISTS teams;
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

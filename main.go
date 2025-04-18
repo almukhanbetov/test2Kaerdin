@@ -1,34 +1,42 @@
 package main
 
 import (
-	
+	"github.com/gin-contrib/cors"
+	"net/http"
 	"test2/config"
 	"test2/db"
-	"test2/handlers"
+	"test2/models"
 	"test2/utils"
-	"test2/importer"	
-	_ "github.com/jackc/pgx/v5/stdlib"
-    "github.com/gin-contrib/cors"
+	
 	"github.com/gin-gonic/gin"
+	
 )
 
 func main() {
+
 	config.LoadEnv()
 	db.InitDB()
 	defer db.CloseDB()
-
-	db.RunMigrations()            // ← миграции применятся при запуске
-	// utils.ImportMatchesFromJSON() // ← ВОТ ЭТА СТРОКА 📌
-	importer.ImportAllLiveGames(db.DB, "data/allLiveGAmes.json")
-
+	db.RunMigrations()
+	utils.LoadLiveGamesFromJSON("allLiveGAmes.json")
+	utils.EnsureUploadsFolder()
+	
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     []string{"http://localhost:5174"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
-	router.GET("/live", handlers.GetLiveEvents)
-
-	utils.StartServerGracefully(router, "8686")
+	// 👉 Новый эндпоинт
+	router.GET("/games", func(c *gin.Context) {
+		games, err := models.GetAllLiveGames()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении матчей"})
+			return
+		}
+		c.JSON(http.StatusOK, games)
+	})
+	utils.StartServerGracefully(router, "8082")
 }
